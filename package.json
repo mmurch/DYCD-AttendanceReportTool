@@ -1,0 +1,9 @@
+{
+	"author": "Matt Murchison",
+	"name": "DYCD-AttendanceReportTool",
+	"version": "0.0.1",
+	"dependencies": {
+		"underscore": "latest",
+		"bluebird": "latest"
+	}
+}
