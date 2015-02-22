@@ -4,6 +4,7 @@
 	"version": "0.0.1",
 	"dependencies": {
 		"underscore": "latest",
-		"bluebird": "latest"
+		"bluebird": "latest",
+		"csvtojson": "latest"
 	}
 }
