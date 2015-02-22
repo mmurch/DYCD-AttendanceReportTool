@@ -1,8 +1,7 @@
 
 var _ = require('underscore'),
 	Converter = require('csvtojson').core.Converter,
-	fs = require('fs'),
-	Promise = require('bluebird');
+	fs = require('fs');
 
 var csvFileName = './Report.csv';
 var configFileName = './activities.csv';
@@ -18,13 +17,18 @@ var headSections = data.match(re);
 data = data.replace(re1, '');
 data = data.replace(re, 'blah, blah, blah, blah, blah, blah, blah');
 
-// for each student, we need 
-// - activity name (after Activity Name:)
-// - activity primary category
+var getActivityFromHeadSection = 
+	function getActivityFromHeadSection(headSection, activities) {	
+		return _.find(activities, function(act){
+			return headSection.indexOf(act['Activity Name']) > -1;
+		});
+	};
 
-// for each student, have a row
-// for each primary category, a column
-// sum hours for attended hours
+var getConverter = function getConverter(){
+	return new Converter({
+		constructResult: true
+	}); 
+}
 
 // need to support category which is a union of two other categories
 
@@ -35,29 +39,60 @@ data = data.replace(re, 'blah, blah, blah, blah, blah, blah, blah');
 // > 45 hours
 // > 30 hours
 // > 20 hours
+var calculateMetrics = function calculateMetrics(cats, students){
+	var results = {},
+		studentList = _.values(students);
 
-var getActivityFromHeadSection = 
-	function getActivityFromHeadSection(headSection, activities) {	
-		return _.find(activities, function(act){
-			return headSection.indexOf(act['Activity Name']) > -1;
-		});
+	var totalStudents = studentList.length;
+	var totalSlots = 100;
+
+	// calculate overall average hours per cat
+	_.each(cats, function(cat){
+		results[cat] = {
+			average: _.reduce(studentList, function(memo, val){
+				return memo + val[cat];
+			}, 0) / studentList.length
+		};
+	});
+
+	// calculate num students over each threshold
+	_.each(cats, function(cat){
+		results[cat].over60Count = _.filter(studentList, function(student){
+			return student[cat] >= 60;
+		}).length;
+		results[cat].over45Count = _.filter(studentList, function(student){
+			return student[cat] >= 45;
+		}).length;
+		results[cat].over30Count = _.filter(studentList, function(student){
+			return student[cat] >= 30;
+		}).length;
+		results[cat].over20Count = _.filter(studentList, function(student){
+			return student[cat] >= 20;
+		}).length;
+	});
+
+	// calculate percentage above each threshold
+	_.each(cats, function(cat){
+
+		results[cat].over60PercentageOfTotal = results[cat].over60Count / totalStudents;
+		results[cat].over60PercentageOfSlots = results[cat].over60Count / totalSlots;
+		results[cat].over45PercentageOfTotal = results[cat].over45Count / totalStudents;
+		results[cat].over45PercentageOfSlots = results[cat].over45Count / totalSlots;
+		results[cat].over30PercentageOfTotal = results[cat].over30Count / totalStudents;
+		results[cat].over30PercentageOfSlots = results[cat].over30Count / totalSlots;
+		results[cat].over20PercentageOfTotal = results[cat].over20Count / totalStudents;
+		results[cat].over20PercentageOfSlots = results[cat].over20Count / totalSlots;
 
 
-		// return _.find(config.categories, function(cat){
-		// 	return _.any(cat.identifiers, function(reString){
-		// 		var catReg = new RegExp(reString);
-		// 		var foundCat = catReg.exec(headSection);
-		// 		return !!foundCat.length;
-		// 	});
-		// });
-	};
+	});
 
-var getConverter = function getConverter(){
-	return new Converter({
-		constructResult: true
-	}); 
+
+
+	console.log("Total Students: " + totalStudents);
+	console.log("Total Slots: " + totalSlots);
+	console.log(results);
+	return results;
 }
-
 
 var activityConverter = getConverter();
 
@@ -113,5 +148,6 @@ activityConverter.fromString(config, function(e, activities){
 				+= studentActivity['Attended Hours'];
 
 		});
+		calculateMetrics(cats, students);
 	});
 });
